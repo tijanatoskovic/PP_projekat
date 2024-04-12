@@ -4,15 +4,19 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/x509"
 	"encoding/hex"
+	"encoding/pem"
+	"fmt"
 	"io"
 	"os"
 
 	"golang.org/x/crypto/pbkdf2"
 )
 
-func Encrypt(source string, password []byte) {
+func EncryptAES(source string, password []byte) {
 	if _, err := os.Stat(source); os.IsNotExist(err) {
 		panic(err.Error())
 	}
@@ -123,4 +127,62 @@ func Decrypt(source string, password []byte) {
 		panic(err.Error())
 	}
 
+}
+
+func EncryptRSA(source string, bits int) (*rsa.PrivateKey, string, error) {
+	if _, err := os.Stat(source); os.IsNotExist(err) {
+		panic(err.Error())
+	}
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
+	if err != nil {
+		return nil, source, err
+	}
+	return privateKey, source, nil
+}
+
+func savePrivateKeyToFile(privateKey *rsa.PrivateKey, filename string) error {
+	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	privateKeyPEM := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: privateKeyBytes,
+	}
+
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	if err := pem.Encode(file, privateKeyPEM); err != nil {
+		return err
+	}
+
+	fmt.Println("Private key saved to", filename)
+	return nil
+}
+
+func savePublicKeyToFile(publicKey *rsa.PublicKey, filename string) error {
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		return err
+	}
+
+	publicKeyPEM := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: publicKeyBytes,
+	}
+
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	if err := pem.Encode(file, publicKeyPEM); err != nil {
+		return err
+	}
+
+	fmt.Println("Public key saved to", filename)
+	return nil
 }

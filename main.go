@@ -149,15 +149,38 @@ func encryptHandle() {
 		println("Missing the path to the file. More more info run go run . help")
 		os.Exit(0)
 	}
+	algorithm := os.Args[2]
 
-	file := os.Args[2] //the password
+	file := os.Args[3] //the password
 	if !validateFile(file) {
 		panic("File not found")
 	}
-
-	password := getPassword()
+	password := getPassword() //pass nam treba samo za AES
 	fmt.Println("\nEncrypting...")
-	filecrypt.Encrypt(file, password)
+	switch algorithm {
+	case "AES":
+		filecrypt.EncryptAES(file, password)
+	case "RSA":
+		privateKey, _, err := filecrypt.EncryptRSA(file, 4096)
+		if err != nil {
+			fmt.Println("Error generating RSA key pair:", err)
+			return
+		}
+
+		err = filecrypt.savePrivateKeyToFile(privateKey, "private.pem")
+		if err != nil {
+			fmt.Println("Error saving private key:", err)
+			return
+		}
+
+		publicKey := &privateKey.PublicKey
+		err = savePublicKeyToFile(publicKey, "public.pem")
+		if err != nil {
+			fmt.Println("Error saving public key:", err)
+			return
+		}
+	}
+
 	fmt.Println("\n file sucessfully protected")
 }
 
