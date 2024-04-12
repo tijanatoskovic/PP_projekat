@@ -16,37 +16,38 @@ reading the last 12 digits of the encrypted file
 */
 
 /*
-	We will be encrypting and decrypting a text passed by the user
-	USING THE CEASER CIPHER
-	For example: 	HELLOWORLD		our key will be for now: 5
+We will be encrypting and decrypting a text passed by the user
+USING THE CEASER CIPHER
+For example: 	HELLOWORLD		our key will be for now: 5
 
-	the original text: ABCDEFGHIJKLMOPQRSTUVWXYZ
-				26 - (key)5 = 21	/		\
-								  /			  \
-					ABCDEFGHIJKLMOPQRSTU	  VWXYZ
-	the hashed text:	VWXYZABCDEFGHIJKLMOPQRSTU
+the original text: ABCDEFGHIJKLMOPQRSTUVWXYZ
 
-		index of H in original text: 8
-		and we aplly the formula:
-		pos + len(original letters)) % len(original letters)
-		In put case:	(8+26)%26 = 8
-		H -----> C
+	26 - (key)5 = 21	/		\
+					  /			  \
+		ABCDEFGHIJKLMOPQRSTU	  VWXYZ
+
+the hashed text:	VWXYZABCDEFGHIJKLMOPQRSTU
+
+	index of H in original text: 8
+	and we aplly the formula:
+	pos + len(original letters)) % len(original letters)
+	In put case:	(8+26)%26 = 8
+	H -----> C
 */
-
 package main
 
 import (
 	"bytes"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/tijanatoskovic/PP_projekat/filecrypt"
-
 	"golang.org/x/term"
 )
-
-const originalLetter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -63,141 +64,92 @@ func main() {
 		encryptHandle()
 	case "decryptFile":
 		decryptHandle()
-	case "encryptText":
-		encryptedText := encryptText(5)
-		decryptText(5, encryptedText)
 	default:
 		fmt.Println("Run:\t\"go run . help\"\tfor usage.")
 		os.Exit(1)
 	}
 }
-func hashLetterFunc(key int, letter string) (result string) {
-	//this func returns the hashedText
-	runes := []rune(letter)
-	lastLetterKey := string(runes[len(letter)-key : len(letter)])
-	leftOverLetter := string(runes[0 : len(letter)-key])
-	return fmt.Sprintf(`%s%s`, lastLetterKey, leftOverLetter)
-	//NOTICE: We have to use `` charachers because we are using runes
-}
-
-func decryptText(key int, encryptedText string) (result string) {
-	hashLetter := hashLetterFunc(key, originalLetter)
-	var hashedString = ""
-	findOne := func(r rune) rune {
-		pos := strings.Index(hashLetter, string([]rune{r}))
-		if pos != -1 {
-			letterPos := (pos + len(originalLetter)) % len(originalLetter)
-			hashedString = hashedString + string(originalLetter[letterPos])
-		}
-		return r
-	}
-
-	strings.Map(findOne, encryptedText)
-	fmt.Println("Decrypted text: ", hashedString)
-	return hashedString
-}
-
-func encryptText(key int) (result string) {
-	fmt.Println("Input text: ")
-	var plainText string
-	_, err := fmt.Scan(&plainText)
-	//TODO: Make it accept a string containing space and other characters
-	if err != nil {
-		panic("Error!\n")
-	}
-	hashLetter := hashLetterFunc(key, originalLetter)
-	var hashedString = ""
-	//rune represents a single UNI-CODE character
-	// for example the letter A=65
-	findOne := func(r rune) rune {
-		pos := strings.Index(originalLetter, string([]rune{r}))
-		//We want to check if this letter exist in our originalText
-		if pos != -1 {
-			letterPos := (pos + len(originalLetter)) % len(originalLetter)
-			hashedString = hashedString + string(hashLetter[letterPos])
-		}
-		return r
-	}
-
-	strings.Map(findOne, plainText)
-	//this func takes one by one letters of our plainText and sends
-	//it to the func findOne
-	fmt.Println("Encrypted text: ", hashedString)
-	return hashedString
-}
-
-func printHelp() {
-	fmt.Println("file encryption")
-	fmt.Println("Simple file encrypter for your day-to-day needs.")
-	fmt.Println("")
-	fmt.Println("Usage:")
-	fmt.Println("")
-	fmt.Println("\tgo run . encryptFile /path/to/your/file")
-	fmt.Println("")
-	fmt.Println("Commands:")
-	fmt.Println("")
-	fmt.Println("\t encryptFile\tEncrypts a file given a password")
-	fmt.Println("\t decryptFile\tTries to decrypt a file using a password")
-	fmt.Println("\t encryptText\tEncrypts a given text with ceaser cipher")
-	fmt.Println("\t help\t\tDisplays help text")
-	fmt.Println("")
-
-}
 
 func encryptHandle() {
-	if len(os.Args) < 3 {
-		println("Missing the path to the file. More more info run go run . help")
+	if len(os.Args) < 4 {
+		println("Missing the path to the file. For more info run go run . help")
 		os.Exit(0)
 	}
 	algorithm := os.Args[2]
+	filePath := os.Args[3]
 
-	file := os.Args[3] //the password
-	if !validateFile(file) {
-		panic("File not found")
+	if !validateFile(filePath) {
+		fmt.Println("File not found.")
+		os.Exit(1)
 	}
-	password := getPassword() //pass nam treba samo za AES
-	fmt.Println("\nEncrypting...")
+
 	switch algorithm {
 	case "AES":
-		filecrypt.EncryptAES(file, password)
+		password := getPassword()
+		fmt.Println("\nEncrypting...")
+		filecrypt.EncryptAES(filePath, password)
+		fmt.Println("\nFile succesfully encrypted! Congratulations motherfuckers!")
 	case "RSA":
-		privateKey, _, err := filecrypt.EncryptRSA(file, 4096)
+		keyFile := os.Args[4]
+		privateKey, err := loadPrivateKeyFromFile("private.pem")
 		if err != nil {
-			fmt.Println("Error generating RSA key pair:", err)
-			return
+			fmt.Println("Error loading private key:", err)
+			os.Exit(1)
 		}
 
-		err = filecrypt.savePrivateKeyToFile(privateKey, "private.pem")
+		err = filecrypt.EncryptRSA("daisy.jpg", privateKey)
+		if err != nil {
+			fmt.Println("Error encrypting file:", err)
+			os.Exit(1)
+		}
+
+		err = savePrivateKeyToFile(privateKey, keyFile)
 		if err != nil {
 			fmt.Println("Error saving private key:", err)
 			return
 		}
 
-		publicKey := &privateKey.PublicKey
-		err = savePublicKeyToFile(publicKey, "public.pem")
-		if err != nil {
-			fmt.Println("Error saving public key:", err)
-			return
-		}
+		fmt.Println("\nFile successfully encrypted with RSA")
 	}
-
-	fmt.Println("\n file sucessfully protected")
 }
 
 func decryptHandle() {
 	if len(os.Args) < 3 {
-		println("Missing the path to the file. More more info run go run . help")
+		println("Missing arguments. Usage: go run . decryptFile RSA /path/to/your/file private_key.pem")
 		os.Exit(0)
 	}
-	file := os.Args[2] //the password
-	if !validateFile(file) {
-		panic("File not found")
+	algorithm := os.Args[2]
+	filePath := os.Args[3]
+
+	if !validateFile(filePath) {
+		fmt.Println("File not found.")
+		os.Exit(1)
 	}
-	fmt.Print("Enter password:")
-	password, _ := term.ReadPassword(0)
-	fmt.Println("\nDecrypting...")
-	filecrypt.Decrypt(file, password)
-	fmt.Println("\n file sucessfully decrypted")
+
+	switch algorithm {
+	case "AES":
+		fmt.Print("Enter password:")
+		password, _ := term.ReadPassword(0)
+		fmt.Println("\nDecrypting...")
+		filecrypt.Decrypt(filePath, password)
+		fmt.Println("\nFile successfully decrypted")
+	case "RSA":
+		keyFile := os.Args[4]
+		privateKey, err := loadPrivateKeyFromFile(keyFile)
+		if err != nil {
+			fmt.Println("Error loading private key:", err)
+			os.Exit(1)
+		}
+
+		fmt.Println("\nDecrypting...")
+		err = filecrypt.DecryptRSA(filePath, privateKey)
+		if err != nil {
+			fmt.Println("Error decrypting file:", err)
+			os.Exit(1)
+		}
+
+		fmt.Println("\nFile successfully decrypted with RSA")
+	}
 }
 
 func getPassword() []byte {
@@ -221,4 +173,61 @@ func validateFile(file string) bool {
 
 func validatePassword(password1 []byte, password2 []byte) bool {
 	return bytes.Equal(password1, password2)
+}
+
+func savePrivateKeyToFile(privateKey *rsa.PrivateKey, filename string) error {
+	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	privateKeyPEM := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: privateKeyBytes,
+	}
+
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	if err := pem.Encode(file, privateKeyPEM); err != nil {
+		return err
+	}
+
+	fmt.Println("Private key saved to", filename)
+	return nil
+}
+
+func loadPrivateKeyFromFile(filename string) (*rsa.PrivateKey, error) {
+	file, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(file)
+	if block == nil {
+		return nil, errors.New("failed to decode PEM block containing private key")
+	}
+
+	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, nil
+}
+
+func printHelp() {
+	fmt.Println("file encryption")
+	fmt.Println("Simple file encrypter for your day-to-day needs.")
+	fmt.Println("")
+	fmt.Println("Usage:")
+	fmt.Println("")
+	fmt.Println("\tgo run . encryptFile [algorithm] /path/to/your/file [private_key_file.pem]")
+	fmt.Println("\tgo run . decryptFile [algorithm] /path/to/your/file [private_key_file.pem]")
+	fmt.Println("")
+	fmt.Println("Commands:")
+	fmt.Println("")
+	fmt.Println("\t encryptFile\tEncrypts a file using the specified algorithm")
+	fmt.Println("\t decryptFile\tDecrypts a file using the specified algorithm")
+	fmt.Println("\t help\t\tDisplays help text")
+	fmt.Println("")
 }

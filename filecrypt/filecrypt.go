@@ -6,9 +6,9 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
-	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -129,60 +129,75 @@ func Decrypt(source string, password []byte) {
 
 }
 
-func EncryptRSA(source string, bits int) (*rsa.PrivateKey, string, error) {
+func EncryptRSA(source string, privateKey *rsa.PrivateKey) error {
 	if _, err := os.Stat(source); os.IsNotExist(err) {
-		panic(err.Error())
-	}
-
-	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
-	if err != nil {
-		return nil, source, err
-	}
-	return privateKey, source, nil
-}
-
-func savePrivateKeyToFile(privateKey *rsa.PrivateKey, filename string) error {
-	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-	privateKeyPEM := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: privateKeyBytes,
-	}
-
-	file, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	if err := pem.Encode(file, privateKeyPEM); err != nil {
 		return err
 	}
 
-	fmt.Println("Private key saved to", filename)
+	plaintext, err := os.ReadFile(source)
+	if err != nil {
+		return err
+	}
+
+	ciphertext, err := rsa.EncryptPKCS1v15(rand.Reader, &privateKey.PublicKey, plaintext)
+	if err != nil {
+		return err
+	}
+
+	//creating the file
+	dstFile, err := os.Create(source + ".enc")
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = dstFile.Write(ciphertext)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("\nFile successfully encrypted")
 	return nil
 }
 
-func savePublicKeyToFile(publicKey *rsa.PublicKey, filename string) error {
-	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+func DecryptRSA(source string, privateKey *rsa.PrivateKey) error {
+	if _, err := os.Stat(source); os.IsNotExist(err) {
+		return err
+	}
+
+	srcFile, err := os.Open(source)
 	if err != nil {
 		return err
 	}
 
-	publicKeyPEM := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: publicKeyBytes,
-	}
+	defer srcFile.Close()
 
-	file, err := os.Create(filename)
+	cipherText, err := io.ReadAll(srcFile)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 
-	if err := pem.Encode(file, publicKeyPEM); err != nil {
+	block, _ := pem.Decode(cipherText)
+	if block == nil {
+		return errors.New("failed to decode PEM block")
+	}
+
+	decryptedBytes, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, block.Bytes)
+	if err != nil {
 		return err
 	}
 
-	fmt.Println("Public key saved to", filename)
+	//creating the file
+	dstFile, err := os.Create(source)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = dstFile.Write(decryptedBytes)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
