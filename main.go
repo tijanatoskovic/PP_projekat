@@ -71,6 +71,14 @@ func main() {
 		os.Exit(1)
 	}
 }
+func hashLetterFunc(key int, letter string) (result string) {
+	//this func returns the hashedText
+	runes := []rune(letter)
+	lastLetterKey := string(runes[len(letter)-key : len(letter)])
+	leftOverLetter := string(runes[0 : len(letter)-key])
+	return fmt.Sprintf(`%s%s`, lastLetterKey, leftOverLetter)
+	//NOTICE: We have to use `` charachers because we are using runes
+}
 
 func decryptText(key int, encryptedText string) (result string) {
 	hashLetter := hashLetterFunc(key, originalLetter)
@@ -118,24 +126,23 @@ func encryptText(key int) (result string) {
 	return hashedString
 }
 
-// func printHelp() {
-// 	fmt.Println("file encryption")
-// 	fmt.Println("Simple file encrypter for your day-to-day needs.")
-// 	fmt.Println("")
-// 	fmt.Println("Usage:")
-// 	fmt.Println("")
-// 	fmt.Println("\tgo run . encryptFile /path/to/your/file")
-// 	fmt.Println("")
-// 	fmt.Println("Commands:")
-// 	fmt.Println("")
-// 	fmt.Println("\t encryptFile\tEncrypts a file given a password")
-// 	fmt.Println("\t decryptFile\tTries to decrypt a file using a password")
-// 	fmt.Println("\t encryptText\tEncrypts a given text with ceaser cipher")
-// 	fmt.Println("\t help\t\tDisplays help text")
-// 	fmt.Println("")
+func printHelp() {
+	fmt.Println("file encryption")
+	fmt.Println("Simple file encrypter for your day-to-day needs.")
+	fmt.Println("")
+	fmt.Println("Usage:")
+	fmt.Println("")
+	fmt.Println("\tgo run . encryptFile /path/to/your/file")
+	fmt.Println("")
+	fmt.Println("Commands:")
+	fmt.Println("")
+	fmt.Println("\t encryptFile\tEncrypts a file given a password")
+	fmt.Println("\t decryptFile\tTries to decrypt a file using a password")
+	fmt.Println("\t encryptText\tEncrypts a given text with ceaser cipher")
+	fmt.Println("\t help\t\tDisplays help text")
+	fmt.Println("")
 
-// }
-////////help sam zakomentarisao
+}
 
 func encryptHandle() {
 	if len(os.Args) < 3 {
@@ -170,7 +177,6 @@ func decryptHandle() {
 	fmt.Println("\n file sucessfully decrypted")
 }
 
-// i ovde dodajem komentar
 func getPassword() []byte {
 	fmt.Print("Enter password:")
 	password, _ := term.ReadPassword(0)
@@ -193,5 +199,3 @@ func validateFile(file string) bool {
 func validatePassword(password1 []byte, password2 []byte) bool {
 	return bytes.Equal(password1, password2)
 }
-
-//dodajem neke komentare
