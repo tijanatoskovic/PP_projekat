@@ -43,6 +43,8 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/tijanatoskovic/PP_projekat/filecrypt"
@@ -50,19 +52,16 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		printHelp()
-		os.Exit(0)
-	}
-
-	function := os.Args[1]
+	var function string
+	fmt.Println("Do you want to encrypt (e) or decrypt (d) file?")
+	fmt.Scanln(&function)
 
 	switch function {
 	case "help":
 		printHelp()
-	case "encryptFile":
+	case "e":
 		encryptHandle()
-	case "decryptFile":
+	case "d":
 		decryptHandle()
 	default:
 		fmt.Println("Run:\t\"go run . help\"\tfor usage.")
@@ -70,57 +69,84 @@ func main() {
 	}
 }
 
-func encryptHandle() {
-	if len(os.Args) < 4 {
-		println("Missing the path to the file. For more info run go run . help")
-		os.Exit(0)
-	}
-	algorithm := os.Args[2]
-	filePath := os.Args[3]
+var privateKey *rsa.PrivateKey
+var publicKey *rsa.PublicKey
+var encryptedData []byte
+var encryptedAESKey []byte
 
+func encryptHandle() {
+
+	var algorithm string
+	var filePath string
+
+	fmt.Println("Choose which algorithm you want to use[AES | RSA | ECC]: ")
+	fmt.Println("Note! RSA and ECC algorithms only support text files becouse of complexity of algorithms!")
+	fmt.Scanln(&algorithm)
+	fmt.Println("Enter path to file you want to encrypt/decrypt: ")
+	fmt.Scanln(&filePath)
 	if !validateFile(filePath) {
 		fmt.Println("File not found.")
 		os.Exit(1)
 	}
+
+	var err error
 
 	switch algorithm {
 	case "AES":
 		password := getPassword()
 		fmt.Println("\nEncrypting...")
 		filecrypt.EncryptAES(filePath, password)
-		fmt.Println("\nFile succesfully encrypted! Congratulations motherfuckers!")
+		fmt.Println("\nFile succesfully encrypted!")
 	case "RSA":
-		keyFile := os.Args[4]
-		privateKey, err := loadPrivateKeyFromFile("private.pem")
+		// Generate RSA keys
+		privateKey, publicKey, err = filecrypt.GenerateRSAKeys()
 		if err != nil {
-			fmt.Println("Error loading private key:", err)
-			os.Exit(1)
+			log.Fatalf("Error generating RSA keys: %v", err)
 		}
 
-		err = filecrypt.EncryptRSA("daisy.jpg", privateKey)
+		// Read the file to be encrypted
+		fileData, err := ioutil.ReadFile(filePath)
 		if err != nil {
-			fmt.Println("Error encrypting file:", err)
-			os.Exit(1)
+			log.Fatalf("Error reading file: %v", err)
+		}
+		var aesKey []byte
+		// Encrypt the file with AES
+		encryptedData, aesKey, err = filecrypt.EncryptWithAES(fileData)
+		if err != nil {
+			log.Fatalf("Error encrypting file data: %v", err)
+		}
+		err = ioutil.WriteFile("encrypted_data.txt", encryptedData, 0644)
+		if err != nil {
+			log.Fatalf("Error writing byte code: %v", err)
+		}
+		err = savePrivateKeyToFile(privateKey, "private_key.txt")
+		if err != nil {
+			log.Fatalf("Error saving private key: %v", err)
 		}
 
-		err = savePrivateKeyToFile(privateKey, keyFile)
+		// Encrypt the AES key with RSA
+		encryptedAESKey, err = filecrypt.EncryptKeyWithRSA(aesKey, publicKey)
 		if err != nil {
-			fmt.Println("Error saving private key:", err)
-			return
+			log.Fatalf("Error encrypting RSA key: %v", err)
+		}
+		err = ioutil.WriteFile("encryptedAESkey.txt", encryptedAESKey, 0644)
+		if err != nil {
+			log.Fatalf("Error writing byte code: %v", err)
 		}
 
-		fmt.Println("\nFile successfully encrypted with RSA")
+		err = ioutil.WriteFile(filePath, encryptedData, 0644)
+
 	}
 }
 
 func decryptHandle() {
-	if len(os.Args) < 3 {
-		println("Missing arguments. Usage: go run . decryptFile RSA /path/to/your/file private_key.pem")
-		os.Exit(0)
-	}
-	algorithm := os.Args[2]
-	filePath := os.Args[3]
+	var algorithm string
+	var filePath string
 
+	fmt.Println("Choose which algorithm you had encrypted with [AES | RSA | ECC]: ")
+	fmt.Scanln(&algorithm)
+	fmt.Println("Enter path to file you want to encrypt/decrypt: ")
+	fmt.Scanln(&filePath)
 	if !validateFile(filePath) {
 		fmt.Println("File not found.")
 		os.Exit(1)
@@ -131,25 +157,46 @@ func decryptHandle() {
 		fmt.Print("Enter password:")
 		password, _ := term.ReadPassword(0)
 		fmt.Println("\nDecrypting...")
-		filecrypt.Decrypt(filePath, password)
+		filecrypt.DecryptAES(filePath, password)
 		fmt.Println("\nFile successfully decrypted")
 	case "RSA":
-		keyFile := os.Args[4]
-		privateKey, err := loadPrivateKeyFromFile(keyFile)
+		// Decrypt the AES key with RSA
+		var err error
+
+		privateKey, err = loadPrivateKeyFromFile("private_key.txt")
 		if err != nil {
-			fmt.Println("Error loading private key:", err)
-			os.Exit(1)
+			log.Fatalf("FIled loading private key: %v", err)
+		}
+		encryptedData, err = ioutil.ReadFile("encrypted_data.txt")
+		if err != nil {
+			log.Fatalf("Error reading file data: %v", err)
+		}
+		encryptedAESKey, err = ioutil.ReadFile("encryptedAESkey.txt")
+		if err != nil {
+			log.Fatalf("Error reading file data: %v", err)
+		}
+		decryptedAESKey, err := filecrypt.DecryptKeyWithRSA([]byte(encryptedAESKey), privateKey)
+		if err != nil {
+			log.Fatalf("Error decrypting AES key: %v", err)
 		}
 
-		fmt.Println("\nDecrypting...")
-		err = filecrypt.DecryptRSA(filePath, privateKey)
+		// Decrypt the file with AES
+		decryptedData, err := filecrypt.DecryptWithAES([]byte(encryptedData), decryptedAESKey)
 		if err != nil {
-			fmt.Println("Error decrypting file:", err)
-			os.Exit(1)
+			log.Fatalf("Error decrypting file data: %v", err)
+		}
+		if err != nil {
+			log.Fatalf("Error writing back to file: %v", err)
+		}
+		// Write the decrypted data back to the file (can replace with encryptedData to save encrypted file)
+		err = ioutil.WriteFile(filePath, decryptedData, 0644)
+		if err != nil {
+			log.Fatalf("Error writing back to file: %v", err)
 		}
 
-		fmt.Println("\nFile successfully decrypted with RSA")
+		log.Println("File encryption and decryption completed successfully")
 	}
+
 }
 
 func getPassword() []byte {

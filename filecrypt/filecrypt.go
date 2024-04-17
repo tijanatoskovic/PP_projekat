@@ -6,10 +6,8 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
-	"encoding/pem"
-	"errors"
-	"fmt"
 	"io"
 	"os"
 
@@ -73,7 +71,7 @@ func EncryptAES(source string, password []byte) {
 
 }
 
-func Decrypt(source string, password []byte) {
+func DecryptAES(source string, password []byte) {
 	if _, err := os.Stat(source); os.IsNotExist(err) {
 		panic(err.Error())
 	}
@@ -129,75 +127,71 @@ func Decrypt(source string, password []byte) {
 
 }
 
-func EncryptRSA(source string, privateKey *rsa.PrivateKey) error {
-	if _, err := os.Stat(source); os.IsNotExist(err) {
-		return err
-	}
-
-	plaintext, err := os.ReadFile(source)
+// GenerateRSAKeys generates a pair of RSA private and public keys
+func GenerateRSAKeys() (*rsa.PrivateKey, *rsa.PublicKey, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-
-	ciphertext, err := rsa.EncryptPKCS1v15(rand.Reader, &privateKey.PublicKey, plaintext)
-	if err != nil {
-		return err
-	}
-
-	//creating the file
-	dstFile, err := os.Create(source + ".enc")
-	if err != nil {
-		return err
-	}
-	defer dstFile.Close()
-
-	_, err = dstFile.Write(ciphertext)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("\nFile successfully encrypted")
-	return nil
+	return privateKey, &privateKey.PublicKey, nil
 }
 
-func DecryptRSA(source string, privateKey *rsa.PrivateKey) error {
-	if _, err := os.Stat(source); os.IsNotExist(err) {
-		return err
-	}
-
-	srcFile, err := os.Open(source)
+// EncryptWithAES encrypts data using AES-256-GCM
+func EncryptWithAES(data []byte) ([]byte, []byte, error) {
+	key := make([]byte, 32) // AES-256, so 32 bytes key
+	_, err := rand.Read(key)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	defer srcFile.Close()
-
-	cipherText, err := io.ReadAll(srcFile)
+	block, err := aes.NewCipher(key)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	block, _ := pem.Decode(cipherText)
-	if block == nil {
-		return errors.New("failed to decode PEM block")
-	}
-
-	decryptedBytes, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, block.Bytes)
+	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	//creating the file
-	dstFile, err := os.Create(source)
+	nonce := make([]byte, gcm.NonceSize())
+	_, err = rand.Read(nonce)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	defer dstFile.Close()
 
-	_, err = dstFile.Write(decryptedBytes)
+	ciphertext := gcm.Seal(nil, nonce, data, nil)
+	return append(nonce, ciphertext...), key, nil
+}
+
+// DecryptWithAES decrypts data using AES-256-GCM
+func DecryptWithAES(ciphertext, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceSize := gcm.NonceSize()
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+	return plaintext, nil
+}
+
+// EncryptKeyWithRSA encrypts the AES key using the RSA public key
+func EncryptKeyWithRSA(key []byte, publicKey *rsa.PublicKey) ([]byte, error) {
+	return rsa.EncryptOAEP(sha256.New(), rand.Reader, publicKey, key, nil)
+}
+
+// DecryptKeyWithRSA decrypts the AES key using the RSA private key
+func DecryptKeyWithRSA(encryptedKey []byte, privateKey *rsa.PrivateKey) ([]byte, error) {
+	return rsa.DecryptOAEP(sha256.New(), rand.Reader, privateKey, encryptedKey, nil)
 }
