@@ -6,10 +6,8 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
-	"crypto/x509"
+	"crypto/sha256"
 	"encoding/hex"
-	"encoding/pem"
-	"fmt"
 	"io"
 	"os"
 
@@ -73,7 +71,7 @@ func EncryptAES(source string, password []byte) {
 
 }
 
-func Decrypt(source string, password []byte) {
+func DecryptAES(source string, password []byte) {
 	if _, err := os.Stat(source); os.IsNotExist(err) {
 		panic(err.Error())
 	}
@@ -129,60 +127,71 @@ func Decrypt(source string, password []byte) {
 
 }
 
-func EncryptRSA(source string, bits int) (*rsa.PrivateKey, string, error) {
-	if _, err := os.Stat(source); os.IsNotExist(err) {
-		panic(err.Error())
-	}
-
-	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
+// GenerateRSAKeys generates a pair of RSA private and public keys
+func GenerateRSAKeys() (*rsa.PrivateKey, *rsa.PublicKey, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return nil, source, err
+		return nil, nil, err
 	}
-	return privateKey, source, nil
+	return privateKey, &privateKey.PublicKey, nil
 }
 
-func savePrivateKeyToFile(privateKey *rsa.PrivateKey, filename string) error {
-	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-	privateKeyPEM := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: privateKeyBytes,
-	}
-
-	file, err := os.Create(filename)
+// EncryptWithAES encrypts data using AES-256-GCM
+func EncryptWithAES(data []byte) ([]byte, []byte, error) {
+	key := make([]byte, 32) // AES-256, so 32 bytes key
+	_, err := rand.Read(key)
 	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	if err := pem.Encode(file, privateKeyPEM); err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	fmt.Println("Private key saved to", filename)
-	return nil
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	_, err = rand.Read(nonce)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ciphertext := gcm.Seal(nil, nonce, data, nil)
+	return append(nonce, ciphertext...), key, nil
 }
 
-func savePublicKeyToFile(publicKey *rsa.PublicKey, filename string) error {
-	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+// DecryptWithAES decrypts data using AES-256-GCM
+func DecryptWithAES(ciphertext, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	publicKeyPEM := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: publicKeyBytes,
-	}
-
-	file, err := os.Create(filename)
+	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	if err := pem.Encode(file, publicKeyPEM); err != nil {
-		return err
+		return nil, err
 	}
 
-	fmt.Println("Public key saved to", filename)
-	return nil
+	nonceSize := gcm.NonceSize()
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+	return plaintext, nil
+}
+
+// EncryptKeyWithRSA encrypts the AES key using the RSA public key
+func EncryptKeyWithRSA(key []byte, publicKey *rsa.PublicKey) ([]byte, error) {
+	return rsa.EncryptOAEP(sha256.New(), rand.Reader, publicKey, key, nil)
+}
+
+// DecryptKeyWithRSA decrypts the AES key using the RSA private key
+func DecryptKeyWithRSA(encryptedKey []byte, privateKey *rsa.PrivateKey) ([]byte, error) {
+	return rsa.DecryptOAEP(sha256.New(), rand.Reader, privateKey, encryptedKey, nil)
 }
