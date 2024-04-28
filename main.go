@@ -11,26 +11,111 @@ import (
 	"log"
 	"os"
 
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/widget"
+
 	"github.com/tijanatoskovic/PP_projekat/filecrypt"
-	"golang.org/x/term"
 )
 
-func main() {
-	var function string
-	fmt.Println("Do you want to encrypt (e) or decrypt (d) file?")
-	fmt.Scanln(&function)
+var passs []byte
 
-	switch function {
-	case "help":
-		printHelp()
-	case "e":
-		encryptHandle()
-	case "d":
-		decryptHandle()
-	default:
-		fmt.Println("Run:\t\"go run . help\"\tfor usage.")
-		os.Exit(1)
-	}
+func main() {
+	a := app.New()
+	w := a.NewWindow("EnDeCrypter")
+
+	var filePath string
+	labelFile := widget.NewLabel("Choose file: ")
+	openButton := widget.NewButton("Open File", func() {
+		openFile(w)
+
+	})
+	finishButton := widget.NewButton("", func() {
+		data, err := ioutil.ReadFile("temp.txt")
+		if err != nil {
+			fmt.Println("Error reading file1")
+			return
+		}
+		if err := os.Remove("temp.txt"); err != nil {
+			fmt.Println("Error removing file2")
+			return
+		}
+		filePath = string(data)
+		//fmt.Println(filePath)
+
+		optEncDec, err := ioutil.ReadFile("tempEnDe.txt")
+		if err != nil {
+			fmt.Println("Error reading file3")
+			return
+		}
+		if err := os.Remove("tempEnDe.txt"); err != nil {
+			fmt.Println("Error removing file")
+			return
+		}
+
+		switch string(optEncDec) {
+		case "help":
+			printHelp()
+		case "Encryption":
+			encryptHandle(filePath)
+		case "Decryption":
+			decryptHandle(filePath)
+		default:
+			fmt.Println("Run:\t\"go run . help\"\tfor usage.")
+			os.Exit(1)
+		}
+		a.Quit()
+	})
+
+	labelEncDec := widget.NewLabel("Choose Encryption/Decryption: ")
+
+	radioEnDe := widget.NewRadioGroup([]string{"Encryption", "Decryption"}, func(s string) {
+		//fmt.Println("Selected method: ", s)
+		if err := ioutil.WriteFile("tempEnDe.txt", []byte(s), 0644); err != nil {
+			fmt.Println("Error writting filepath into file")
+			return
+		}
+		finishButton.Text = s[:len(s)-3]
+		finishButton.Refresh()
+	})
+
+	radioEnDe.SetSelected("Decryption")
+
+	//var selectedAlgorithm string
+	labelAlgorithm := widget.NewLabel("Choose preferred algorithm: ")
+	radioAlgorithm := widget.NewRadioGroup([]string{"RSA", "AES"}, func(s string) {
+		//fmt.Println("Selected algrothm: ", s)
+		if s == "AES" {
+			showAESWindow(a)
+		}
+
+		if err := ioutil.WriteFile("tempAlg.txt", []byte(s), 0644); err != nil {
+			fmt.Println("Error writting filepath into file")
+			return
+		}
+	})
+	// radioAlgorithm.SetSelected("RSA")
+
+	// labelPass := widget.NewLabel("Password: ")
+
+	helpButton := widget.NewButton("Help!", func() {
+		help(w)
+	})
+
+	ctrlW := &desktop.CustomShortcut{KeyName: fyne.KeyW, Modifier: fyne.KeyModifierControl}
+	w.Canvas().AddShortcut(ctrlW, func(shortcut fyne.Shortcut) {
+		fyne.App.Quit(a)
+	})
+	HContainerRadio := container.NewHBox(radioAlgorithm)
+	Hcontainer := container.NewHBox(finishButton, helpButton)
+	container1 := container.NewVBox(labelFile, openButton, labelEncDec, radioEnDe, labelAlgorithm, HContainerRadio)
+	w.SetContent(container.NewVBox(container1, Hcontainer))
+
+	w.Resize(fyne.NewSize(800, 400))
+	w.ShowAndRun()
 }
 
 var privateKey *rsa.PrivateKey
@@ -38,26 +123,36 @@ var publicKey *rsa.PublicKey
 var encryptedData []byte
 var encryptedAESKey []byte
 
-func encryptHandle() {
+func encryptHandle(filePath string) {
 
-	var algorithm string
-	var filePath string
+	//var algorithm string
 
-	fmt.Println("Choose which algorithm you want to use[AES | RSA | ECC]: ")
-	fmt.Println("Note! RSA and ECC algorithms only support text files becouse of complexity of algorithms!")
-	fmt.Scanln(&algorithm)
-	fmt.Println("Enter path to file you want to encrypt/decrypt: ")
-	fmt.Scanln(&filePath)
-	if !validateFile(filePath) {
-		fmt.Println("File not found.")
-		os.Exit(1)
+	optAlgorithm, err := ioutil.ReadFile("tempAlg.txt")
+	if err != nil {
+		fmt.Println("Error reading file")
+		return
+	}
+	if err := os.Remove("tempAlg.txt"); err != nil {
+		fmt.Println("Error removing file")
+		return
 	}
 
-	var err error
+	fmt.Println(string(optAlgorithm))
 
-	switch algorithm {
+	// fmt.Println("Choose which algorithm you want to use[AES | RSA | ECC]: ")
+	// fmt.Println("Note! RSA and ECC algorithms only support text files becouse of complexity of algorithms!")
+	// //fmt.Scanln(&algorithm)
+	// fmt.Println("Enter path to file you want to encrypt/decrypt: ")
+	// fmt.Scanln(&filePath)
+	// if !validateFile(filePath) {
+	// 	fmt.Println("File not found.")
+	// 	os.Exit(1)
+	// }
+
+	switch string(optAlgorithm) {
 	case "AES":
-		password := getPassword()
+		fmt.Println(passs)
+		password := passs
 		fmt.Println("\nEncrypting...")
 		filecrypt.EncryptAES(filePath, password)
 		fmt.Println("\nFile succesfully encrypted!")
@@ -105,28 +200,35 @@ func encryptHandle() {
 		}
 		fmt.Println("File sucessfully encrypted!")
 
-	case "ECC":
-
 	}
 }
 
-func decryptHandle() {
-	var algorithm string
-	var filePath string
+func decryptHandle(filePath string) {
 
-	fmt.Println("Choose which algorithm you had encrypted with [AES | RSA | ECC]: ")
-	fmt.Scanln(&algorithm)
-	fmt.Println("Enter path to file you want to encrypt/decrypt: ")
-	fmt.Scanln(&filePath)
+	// fmt.Println("Choose which algorithm you had encrypted with [AES | RSA | ECC]: ")
+	// fmt.Scanln(&algorithm)
+	// fmt.Println("Enter path to file you want to encrypt/decrypt: ")
+	// fmt.Scanln(&filePath)
+	//fmt.Println(filePath)
 	if !validateFile(filePath) {
 		fmt.Println("File not found.")
 		os.Exit(1)
 	}
 
-	switch algorithm {
+	optAlgorithm, err := ioutil.ReadFile("tempAlg.txt")
+	if err != nil {
+		fmt.Println("Error reading file")
+		return
+	}
+	if err := os.Remove("tempAlg.txt"); err != nil {
+		fmt.Println("Error removing file")
+		return
+	}
+	fmt.Println(filePath, optAlgorithm)
+
+	switch string(optAlgorithm) {
 	case "AES":
-		fmt.Print("Enter password:")
-		password, _ := term.ReadPassword(0)
+		password := passs
 		fmt.Println("\nDecrypting...")
 		filecrypt.DecryptAES(filePath, password)
 		fmt.Println("\nFile successfully decrypted")
@@ -179,16 +281,8 @@ func decryptHandle() {
 
 }
 
-func getPassword() []byte {
-	fmt.Print("Enter password:")
-	password, _ := term.ReadPassword(0)
-	fmt.Print("\nConfirm Password: ")
-	passwordConfirm, _ := term.ReadPassword(0)
-	if !validatePassword(password, passwordConfirm) {
-		fmt.Print("\nPasswords do no match. Please try again\n")
-		return getPassword()
-	}
-	return password
+func getPassword(pass string) []byte {
+	return []byte(pass)
 }
 
 func validateFile(file string) bool {
@@ -257,4 +351,78 @@ func printHelp() {
 	fmt.Println("\t decryptFile\tDecrypts a file using the specified algorithm")
 	fmt.Println("\t help\t\tDisplays help text")
 	fmt.Println("")
+}
+
+func help(w fyne.Window) {
+	textEntry := widget.NewEntry()
+	textEntry.MultiLine = true
+	textEntry.Text = "Prvi red\nDrugi red\nTreći red"
+
+	textEntry.Disable()
+
+	// Postavljanje rasporeda za Entry
+	w.SetContent(container.NewVBox(
+		textEntry,
+	))
+}
+
+func openFile(window fyne.Window) {
+	dialog.ShowFileOpen(func(reader fyne.URIReadCloser, err error) {
+		if err != nil {
+			fmt.Println("Error opening file:", err)
+			return
+		}
+		if reader == nil {
+			return
+		}
+		defer reader.Close() //for closing file together with dialog
+
+		fileURI := reader.URI() // string for choosen file
+		if fileURI != nil {
+			filePath := fileURI.Path()
+			dialog.ShowInformation("File Path", filePath, window)
+
+			if err := ioutil.WriteFile("temp.txt", []byte(filePath), 0644); err != nil { //it automaticli closes opened file after writting into file
+				fmt.Println("Error writting filepath into file")
+				return
+			}
+		} // } else {
+		// 	dialog.ShowError(, window)
+		// }
+	}, window)
+
+}
+func showAESWindow(app fyne.App) {
+	encryptionWindow := app.NewWindow("Encryption Window")
+
+	passwordEntry := widget.NewPasswordEntry()
+	confirmEntry := widget.NewPasswordEntry()
+	labelNotMatch := widget.NewLabel("")
+
+	submitButton := widget.NewButton("Submit", func() {
+		password := passwordEntry.Text
+		confirmPassword := confirmEntry.Text
+		if password == confirmPassword {
+			fmt.Println("Passwords match!")
+			passs = getPassword(password)
+
+		} else {
+			//labelNotMatch.SetColor(color.RGB(255, 0, 0))
+			labelNotMatch.SetText("Passwords do not match")
+		}
+	})
+
+	// Postavljanje rasporeda za elemente u novom prozoru
+	encryptionWindow.SetContent(container.NewVBox(
+		widget.NewLabel("Enter Password:"),
+		passwordEntry,
+		widget.NewLabel("Confirm Password:"),
+		confirmEntry,
+		submitButton,
+		labelNotMatch,
+	))
+
+	// Prikazivanje novog prozora
+	encryptionWindow.Resize(fyne.NewSize(400, 300))
+	encryptionWindow.Show()
 }
