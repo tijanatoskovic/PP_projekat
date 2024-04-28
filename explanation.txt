@@ -1,0 +1,36 @@
+/*First: we accept arguments from user
+Second:
+	- we validate the file (see if the file exists)
+	- ask for a password and validate it (for the encryption)
+Finally: we encrypt/decrypt the file*/
+
+/*				ENCRYPTION
+We will create a random variable "nonce" which will be 12 bytes
+and we will randomize it
+The algorihtm we will be using is SHA-1
+*/
+
+/*				DECRYPTION
+We will again ask for the password, then we will read the nonce by
+reading the last 12 digits of the encrypted file
+*/
+
+/*
+We will be encrypting and decrypting a text passed by the user
+USING THE CEASER CIPHER
+For example: 	HELLOWORLD		our key will be for now: 5
+
+the original text: ABCDEFGHIJKLMOPQRSTUVWXYZ
+
+	26 - (key)5 = 21	/		\
+					  /			  \
+		ABCDEFGHIJKLMOPQRSTU	  VWXYZ
+
+the hashed text:	VWXYZABCDEFGHIJKLMOPQRSTU
+
+	index of H in original text: 8
+	and we aplly the formula:
+	pos + len(original letters)) % len(original letters)
+	In put case:	(8+26)%26 = 8
+	H -----> C
+*/

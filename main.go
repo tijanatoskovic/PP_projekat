@@ -1,39 +1,3 @@
-/*First: we accept arguments from user
-Second:
-	- we validate the file (see if the file exists)
-	- ask for a password and validate it (for the encryption)
-Finally: we encrypt/decrypt the file*/
-
-/*				ENCRYPTION
-We will create a random variable "nonce" which will be 12 bytes
-and we will randomize it
-The algorihtm we will be using is SHA-1
-*/
-
-/*				DECRYPTION
-We will again ask for the password, then we will read the nonce by
-reading the last 12 digits of the encrypted file
-*/
-
-/*
-We will be encrypting and decrypting a text passed by the user
-USING THE CEASER CIPHER
-For example: 	HELLOWORLD		our key will be for now: 5
-
-the original text: ABCDEFGHIJKLMOPQRSTUVWXYZ
-
-	26 - (key)5 = 21	/		\
-					  /			  \
-		ABCDEFGHIJKLMOPQRSTU	  VWXYZ
-
-the hashed text:	VWXYZABCDEFGHIJKLMOPQRSTU
-
-	index of H in original text: 8
-	and we aplly the formula:
-	pos + len(original letters)) % len(original letters)
-	In put case:	(8+26)%26 = 8
-	H -----> C
-*/
 package main
 
 import (
@@ -97,6 +61,7 @@ func encryptHandle() {
 		fmt.Println("\nEncrypting...")
 		filecrypt.EncryptAES(filePath, password)
 		fmt.Println("\nFile succesfully encrypted!")
+
 	case "RSA":
 		// Generate RSA keys
 		privateKey, publicKey, err = filecrypt.GenerateRSAKeys()
@@ -133,8 +98,14 @@ func encryptHandle() {
 		if err != nil {
 			log.Fatalf("Error writing byte code: %v", err)
 		}
-
 		err = ioutil.WriteFile(filePath, encryptedData, 0644)
+		if err != nil {
+			fmt.Println("Error while writing the filePath!")
+			return
+		}
+		fmt.Println("File sucessfully encrypted!")
+
+	case "ECC":
 
 	}
 }
@@ -162,7 +133,6 @@ func decryptHandle() {
 	case "RSA":
 		// Decrypt the AES key with RSA
 		var err error
-
 		privateKey, err = loadPrivateKeyFromFile("private_key.txt")
 		if err != nil {
 			log.Fatalf("FIled loading private key: %v", err)
@@ -194,7 +164,17 @@ func decryptHandle() {
 			log.Fatalf("Error writing back to file: %v", err)
 		}
 
-		log.Println("File encryption and decryption completed successfully")
+		log.Println("File decryption completed successfully")
+
+		if err := os.Remove("encrypted_data.txt"); err != nil {
+			panic("Error while deleting files!")
+		}
+		if err := os.Remove("encryptedAESkey.txt"); err != nil {
+			panic("Error while deleting files!")
+		}
+		if err := os.Remove("private_key.txt"); err != nil {
+			panic("Error while deleting files!")
+		}
 	}
 
 }
