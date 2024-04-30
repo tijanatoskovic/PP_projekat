@@ -36,24 +36,20 @@ func main() {
 	finishButton := widget.NewButton("", func() {
 		data, err := ioutil.ReadFile("temp.txt")
 		if err != nil {
-			fmt.Println("Error reading file1")
-			return
+			panic("Error reading file1")
 		}
 		if err := os.Remove("temp.txt"); err != nil {
-			fmt.Println("Error removing file2")
-			return
+			panic("Error removing file2")
 		}
 		filePath = string(data)
 		//fmt.Println(filePath)
 
 		optEncDec, err := ioutil.ReadFile("tempEnDe.txt")
 		if err != nil {
-			fmt.Println("Error reading file3")
-			return
+			panic("Error reading file3")
 		}
 		if err := os.Remove("tempEnDe.txt"); err != nil {
-			fmt.Println("Error removing file")
-			return
+			panic("Error removing file")
 		}
 
 		switch string(optEncDec) {
@@ -75,8 +71,7 @@ func main() {
 	radioEnDe := widget.NewRadioGroup([]string{"Encryption", "Decryption"}, func(s string) {
 		//fmt.Println("Selected method: ", s)
 		if err := ioutil.WriteFile("tempEnDe.txt", []byte(s), 0644); err != nil {
-			fmt.Println("Error writting filepath into file")
-			return
+			panic("Error writting filepath into file")
 		}
 		finishButton.Text = s[:len(s)-3]
 		finishButton.Refresh()
@@ -93,8 +88,7 @@ func main() {
 		}
 
 		if err := ioutil.WriteFile("tempAlg.txt", []byte(s), 0644); err != nil {
-			fmt.Println("Error writting filepath into file")
-			return
+			panic("Error writting filepath into file")
 		}
 	})
 	// radioAlgorithm.SetSelected("RSA")
@@ -129,12 +123,10 @@ func encryptHandle(filePath string) {
 
 	optAlgorithm, err := ioutil.ReadFile("tempAlg.txt")
 	if err != nil {
-		fmt.Println("Error reading file")
-		return
+		panic("Error reading file")
 	}
 	if err := os.Remove("tempAlg.txt"); err != nil {
-		fmt.Println("Error removing file")
-		return
+		panic("Error removing file")
 	}
 
 	fmt.Println(string(optAlgorithm))
@@ -217,12 +209,10 @@ func decryptHandle(filePath string) {
 
 	optAlgorithm, err := ioutil.ReadFile("tempAlg.txt")
 	if err != nil {
-		fmt.Println("Error reading file")
-		return
+		panic("Error reading file")
 	}
 	if err := os.Remove("tempAlg.txt"); err != nil {
-		fmt.Println("Error removing file")
-		return
+		panic("Error removing file")
 	}
 	fmt.Println(filePath, optAlgorithm)
 
@@ -356,10 +346,10 @@ func printHelp() {
 func help(w fyne.Window) {
 	textEntry := widget.NewEntry()
 	textEntry.MultiLine = true
-	textEntry.Text = "Prvi red\nDrugi red\nTreći red"
-
+	textEntry.Text = "File encrypter for your data!\nSteps:\n\tChoose file you want to encrypt/decrypt by clicking on \"Open File\" button\n\t2.Choose do you want to encrypt or decrypt! \n\t\tNOTE: file can be encrypted only once!\n\t3.Choose algorithm:\n\t4. Click encrypt/decrypt!"
+	//textEntry.Scroll = true
+	textEntry.SetMinRowsVisible(10)
 	textEntry.Disable()
-
 	// Postavljanje rasporeda za Entry
 	w.SetContent(container.NewVBox(
 		textEntry,
