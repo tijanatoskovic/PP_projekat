@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -24,15 +23,18 @@ import (
 var passs []byte
 
 func main() {
+	//Creating a window for our app
 	a := app.New()
 	w := a.NewWindow("EnDeCrypter")
 
+	//Fetching the file we want to encrypt/decrypt
 	var filePath string
 	labelFile := widget.NewLabel("Choose file: ")
 	openButton := widget.NewButton("Open File", func() {
 		openFile(w)
-
 	})
+
+	//We are using the finish button
 	finishButton := widget.NewButton("", func() {
 		data, err := ioutil.ReadFile("temp.txt")
 		if err != nil {
@@ -42,7 +44,6 @@ func main() {
 			panic("Error removing file2")
 		}
 		filePath = string(data)
-		//fmt.Println(filePath)
 
 		optEncDec, err := ioutil.ReadFile("tempEnDe.txt")
 		if err != nil {
@@ -280,10 +281,6 @@ func validateFile(file string) bool {
 		return false
 	}
 	return true
-}
-
-func validatePassword(password1 []byte, password2 []byte) bool {
-	return bytes.Equal(password1, password2)
 }
 
 func savePrivateKeyToFile(privateKey *rsa.PrivateKey, filename string) error {
