@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-func savePrivateKeyToFile(privateKey *rsa.PrivateKey, filename string) error {
+func SavePrivateKeyToFile(privateKey *rsa.PrivateKey, filename string) error {
 	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
 	privateKeyPEM := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
@@ -30,7 +30,7 @@ func savePrivateKeyToFile(privateKey *rsa.PrivateKey, filename string) error {
 	return nil
 }
 
-func loadPrivateKeyFromFile(filename string) (*rsa.PrivateKey, error) {
+func LoadPrivateKeyFromFile(filename string) (*rsa.PrivateKey, error) {
 	file, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func loadPrivateKeyFromFile(filename string) (*rsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-func validateFile(file string) bool {
+func ValidateFile(file string) bool {
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		return false
 	}

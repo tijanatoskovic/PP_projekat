@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/tijanatoskovic/PP_projekat/files"
 )
 
 var privateKey *rsa.PrivateKey
@@ -14,7 +16,7 @@ var encryptedData []byte
 var encryptedAESKey []byte
 var passs []byte
 
-func encryptHandle(filePath string) {
+func EncryptHandle(filePath string) {
 
 	//var algorithm string
 
@@ -68,7 +70,7 @@ func encryptHandle(filePath string) {
 		if err != nil {
 			log.Fatalf("Error writing byte code: %v", err)
 		}
-		err = savePrivateKeyToFile(privateKey, "private_key.txt")
+		err = files.SavePrivateKeyToFile(privateKey, "private_key.txt")
 		if err != nil {
 			log.Fatalf("Error saving private key: %v", err)
 		}
@@ -92,14 +94,14 @@ func encryptHandle(filePath string) {
 	}
 }
 
-func decryptHandle(filePath string) {
+func DecryptHandle(filePath string) {
 
 	// fmt.Println("Choose which algorithm you had encrypted with [AES | RSA | ECC]: ")
 	// fmt.Scanln(&algorithm)
 	// fmt.Println("Enter path to file you want to encrypt/decrypt: ")
 	// fmt.Scanln(&filePath)
 	//fmt.Println(filePath)
-	if !validateFile(filePath) {
+	if !files.ValidateFile(filePath) {
 		fmt.Println("File not found.")
 		os.Exit(1)
 	}
@@ -122,7 +124,7 @@ func decryptHandle(filePath string) {
 	case "RSA":
 		// Decrypt the AES key with RSA
 		var err error
-		privateKey, err = loadPrivateKeyFromFile("private_key.txt")
+		privateKey, err = files.LoadPrivateKeyFromFile("private_key.txt")
 		if err != nil {
 			log.Fatalf("FIled loading private key: %v", err)
 		}
