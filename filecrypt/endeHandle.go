@@ -68,7 +68,7 @@ func encryptHandle(filePath string) {
 		if err != nil {
 			log.Fatalf("Error writing byte code: %v", err)
 		}
-		err = files.savePrivateKeyToFile(privateKey, "private_key.txt")
+		err = savePrivateKeyToFile(privateKey, "private_key.txt")
 		if err != nil {
 			log.Fatalf("Error saving private key: %v", err)
 		}
