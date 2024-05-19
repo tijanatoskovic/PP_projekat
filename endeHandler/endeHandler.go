@@ -15,12 +15,10 @@ var privateKey *rsa.PrivateKey
 var publicKey *rsa.PublicKey
 var encryptedData []byte
 var encryptedAESKey []byte
-var passs []byte
+var Passs []byte
 
 func EncryptHandle(filePath string) {
-
-	//var algorithm string
-
+	//Reading from our temporary file which algorithm the user has choosen
 	optAlgorithm, err := ioutil.ReadFile("tempAlg.txt")
 	if err != nil {
 		panic("Error reading file")
@@ -31,20 +29,10 @@ func EncryptHandle(filePath string) {
 
 	fmt.Println(string(optAlgorithm))
 
-	// fmt.Println("Choose which algorithm you want to use[AES | RSA | ECC]: ")
-	// fmt.Println("Note! RSA and ECC algorithms only support text files becouse of complexity of algorithms!")
-	// //fmt.Scanln(&algorithm)
-	// fmt.Println("Enter path to file you want to encrypt/decrypt: ")
-	// fmt.Scanln(&filePath)
-	// if !validateFile(filePath) {
-	// 	fmt.Println("File not found.")
-	// 	os.Exit(1)
-	// }
-
 	switch string(optAlgorithm) {
 	case "AES":
-		fmt.Println(passs)
-		password := passs
+		fmt.Println(Passs)
+		password := Passs
 		fmt.Println("\nEncrypting...")
 		filecrypt.EncryptAES(filePath, password)
 		fmt.Println("\nFile succesfully encrypted!")
@@ -118,7 +106,7 @@ func DecryptHandle(filePath string) {
 
 	switch string(optAlgorithm) {
 	case "AES":
-		password := passs
+		password := Passs
 		fmt.Println("\nDecrypting...")
 		filecrypt.DecryptAES(filePath, password)
 		fmt.Println("\nFile successfully decrypted")

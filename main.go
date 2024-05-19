@@ -15,7 +15,7 @@ import (
 	endehandler "github.com/tijanatoskovic/PP_projekat/endeHandler"
 )
 
-var passs []byte
+var Passs []byte
 
 func main() {
 	//Creating a window for our app
@@ -31,15 +31,19 @@ func main() {
 
 	//We are using the finish button
 	finishButton := widget.NewButton("", func() {
+		/*Here we are using a temporary file to memorize the path of the file we want to
+		encrypt/decrypt. This was the only way we could use the file path outside this
+		function*/
 		data, err := ioutil.ReadFile("temp.txt")
 		if err != nil {
-			panic("Error reading file1")
+			panic("Error reading temp.txt")
 		}
 		if err := os.Remove("temp.txt"); err != nil {
-			panic("Error removing file2")
+			panic("Error removing temp.txt")
 		}
 		filePath = string(data)
 
+		/*In the file "tempEnDe.txt" we will save wich option we will use*/
 		optEncDec, err := ioutil.ReadFile("tempEnDe.txt")
 		if err != nil {
 			panic("Error reading file3")
@@ -62,8 +66,10 @@ func main() {
 
 	labelEncDec := widget.NewLabel("Choose Encryption/Decryption: ")
 
+	finishButton.Text = "Select option"
+
 	radioEnDe := widget.NewRadioGroup([]string{"Encryption", "Decryption"}, func(s string) {
-		//fmt.Println("Selected method: ", s)
+		//We write down the choosen option in a file:
 		if err := ioutil.WriteFile("tempEnDe.txt", []byte(s), 0644); err != nil {
 			panic("Error writting filepath into file")
 		}
@@ -71,12 +77,8 @@ func main() {
 		finishButton.Refresh()
 	})
 
-	radioEnDe.SetSelected("Decryption")
-
-	//var selectedAlgorithm string
 	labelAlgorithm := widget.NewLabel("Choose preferred algorithm: ")
 	radioAlgorithm := widget.NewRadioGroup([]string{"RSA", "AES"}, func(s string) {
-		//fmt.Println("Selected algrothm: ", s)
 		if s == "AES" {
 			showAESWindow(a)
 		}
@@ -85,9 +87,6 @@ func main() {
 			panic("Error writting filepath into file")
 		}
 	})
-	// radioAlgorithm.SetSelected("RSA")
-
-	// labelPass := widget.NewLabel("Password: ")
 
 	helpButton := widget.NewButton("Help!", func() {
 		help(w)
@@ -114,10 +113,8 @@ func help(w fyne.Window) {
 	textEntry := widget.NewEntry()
 	textEntry.MultiLine = true
 	textEntry.Text = "File encrypter for your data!\nSteps:\n\tChoose file you want to encrypt/decrypt by clicking on \"Open File\" button\n\t2.Choose do you want to encrypt or decrypt! \n\t\tNOTE: file can be encrypted only once!\n\t3.Choose algorithm:\n\t4. Click encrypt/decrypt!"
-	//textEntry.Scroll = true
 	textEntry.SetMinRowsVisible(10)
 	textEntry.Disable()
-	// Postavljanje rasporeda za Entry
 	w.SetContent(container.NewVBox(
 		textEntry,
 	))
@@ -139,13 +136,11 @@ func openFile(window fyne.Window) {
 			filePath := fileURI.Path()
 			dialog.ShowInformation("File Path", filePath, window)
 
-			if err := ioutil.WriteFile("temp.txt", []byte(filePath), 0644); err != nil { //it automaticli closes opened file after writting into file
+			if err := ioutil.WriteFile("temp.txt", []byte(filePath), 0644); err != nil { //it automatically closes opened file after writting into file
 				fmt.Println("Error writting filepath into file")
 				return
 			}
-		} // } else {
-		// 	dialog.ShowError(, window)
-		// }
+		}
 	}, window)
 
 }
@@ -161,7 +156,8 @@ func showAESWindow(app fyne.App) {
 		confirmPassword := confirmEntry.Text
 		if password != "" && confirmPassword != "" && password == confirmPassword {
 			fmt.Println("Passwords match!")
-			passs = getPassword(password)
+			Passs = getPassword(password)
+			endehandler.Passs = Passs
 			encryptionWindow.Close()
 		} else {
 			labelNotMatch.SetText("Passwords do not match")
