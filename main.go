@@ -89,7 +89,7 @@ func main() {
 	})
 
 	helpButton := widget.NewButton("Help!", func() {
-		help(w)
+		help(a)
 	})
 
 	ctrlW := &desktop.CustomShortcut{KeyName: fyne.KeyW, Modifier: fyne.KeyModifierControl}
@@ -109,15 +109,23 @@ func getPassword(pass string) []byte {
 	return []byte(pass)
 }
 
-func help(w fyne.Window) {
+func help(app fyne.App) {
+	helpWindow := app.NewWindow("Help!")
+
+	buttonBack := widget.NewButton("Back", func() {
+		helpWindow.Close()
+	})
 	textEntry := widget.NewEntry()
 	textEntry.MultiLine = true
-	textEntry.Text = "File encrypter for your data!\nSteps:\n\tChoose file you want to encrypt/decrypt by clicking on \"Open File\" button\n\t2.Choose do you want to encrypt or decrypt! \n\t\tNOTE: file can be encrypted only once!\n\t3.Choose algorithm:\n\t4. Click encrypt/decrypt!"
+	textEntry.Text = "File encrypter for your data!\nSteps:\n\t1.Choose file you want to encrypt/decrypt by clicking on \"Open File\" button\n\t2.Choose do you want to encrypt or decrypt! \n\t\tNOTE: file can be encrypted only once!\n\t3.Choose algorithm:\n\t4. Click encrypt/decrypt!"
 	textEntry.SetMinRowsVisible(10)
 	textEntry.Disable()
-	w.SetContent(container.NewVBox(
+	helpWindow.SetContent(container.NewVBox(
 		textEntry,
+		buttonBack,
 	))
+	helpWindow.Resize(fyne.NewSize(600, 300))
+	helpWindow.Show()
 }
 
 func openFile(window fyne.Window) {
@@ -164,7 +172,6 @@ func showAESWindow(app fyne.App) {
 		}
 	})
 
-	// Postavljanje rasporeda za elemente u novom prozoru
 	encryptionWindow.SetContent(container.NewVBox(
 		widget.NewLabel("Enter Password:"),
 		passwordEntry,
@@ -174,7 +181,6 @@ func showAESWindow(app fyne.App) {
 		labelNotMatch,
 	))
 
-	// Prikazivanje novog prozora
 	encryptionWindow.Resize(fyne.NewSize(400, 300))
 	encryptionWindow.Show()
 }
