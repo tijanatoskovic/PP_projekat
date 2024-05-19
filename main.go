@@ -12,7 +12,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/tijanatoskovic/PP_projekat/filecrypt"
+	endehandler "github.com/tijanatoskovic/PP_projekat/endeHandler"
 )
 
 var passs []byte
@@ -50,9 +50,9 @@ func main() {
 
 		switch string(optEncDec) {
 		case "Encryption":
-			filecrypt.EncryptHandle(filePath)
+			endehandler.EncryptHandle(filePath)
 		case "Decryption":
-			filecrypt.DecryptHandle(filePath)
+			endehandler.DecryptHandle(filePath)
 		default:
 			fmt.Println("Run:\t\"go run . help\"\tfor usage.")
 			os.Exit(1)
