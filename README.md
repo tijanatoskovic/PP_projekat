@@ -23,6 +23,7 @@ EnDecrypter allows you to encrypt and decrypt files (such as text files, images,
      - The application will use the RSA keys generated for the encryption/decryption process.
 4. **Execute Action**: Click on the "Encrypt/Decrypt" button to perform the desired action.
 5. **Help**: Click the "Help!" button for a detailed description of how to use the program
+6. **Exit**: You can close the application by pressing `Ctrl+W`.
 
 > **Important Note**: You cannot decrypt a file that has not been previously encrypted using our application.
 
