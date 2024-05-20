@@ -23,6 +23,7 @@ EnDecrypter allows you to encrypt and decrypt files (such as text files, images,
      - The application will use the RSA keys generated for the encryption/decryption process.
 4. **Execute Action**: Click on the "Encrypt/Decrypt" button to perform the desired action.
 5. **Help**: Click the "Help!" button for a detailed description of how to use the program
+6. **Exit**: You can close the application by pressing `Ctrl+W`.
 
 > **Important Note**: You cannot decrypt a file that has not been previously encrypted using our application.
 
@@ -38,7 +39,16 @@ RSA is an asymmetric encryption algorithm, utilizing a pair of keys: a public ke
 + **Students:** Tijana Tošković, Luka Đekić
 + **Teaching Assistant:** Marija Marković
 + **Professor:** prof. dr Milena Vujošević Janičić
-  
+
 ## Gallery:
-![pp](https://github.com/tijanatoskovic/PP_projekat/assets/155033071/88ef654e-0b6d-4019-b174-7602646ba173)
+  ![Screenshot from 2024-05-20 10-30-21](https://github.com/tijanatoskovic/PP_projekat/assets/119348671/2daa6cd0-c3c3-460d-975e-3f98ed0615e3)
+
+### Encryption example
+![Screenshot from 2024-05-20 10-27-52](https://github.com/tijanatoskovic/PP_projekat/assets/119348671/ad93cc87-2b69-4bfe-abc1-e5e511747f49)
+### Decryption example
+![Screenshot from 2024-05-20 10-28-27](https://github.com/tijanatoskovic/PP_projekat/assets/119348671/ded5e812-37e6-4670-a140-26750bef7011)
+
+
+
+
 
