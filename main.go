@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"fyne.io/fyne/v2"
@@ -15,7 +14,8 @@ import (
 	endehandler "github.com/tijanatoskovic/PP_projekat/endeHandler"
 )
 
-var Passs []byte
+var ChoosenOption string
+var FilePath string
 
 func main() {
 	//Creating a window for our app
@@ -31,26 +31,8 @@ func main() {
 
 	//We are using the finish button
 	finishButton := widget.NewButton("", func() {
-		/*Here we are using a temporary file to memorize the path of the file we want to
-		encrypt/decrypt. This was the only way we could use the file path outside this
-		function*/
-		data, err := ioutil.ReadFile("temp.txt")
-		if err != nil {
-			panic("Error reading temp.txt")
-		}
-		if err := os.Remove("temp.txt"); err != nil {
-			panic("Error removing temp.txt")
-		}
-		filePath = string(data)
-
-		/*In the file "tempEnDe.txt" we will save wich option we will use*/
-		optEncDec, err := ioutil.ReadFile("tempEnDe.txt")
-		if err != nil {
-			panic("Error reading file3")
-		}
-		if err := os.Remove("tempEnDe.txt"); err != nil {
-			panic("Error removing file")
-		}
+		filePath = FilePath
+		optEncDec := ChoosenOption
 
 		switch string(optEncDec) {
 		case "Encryption":
@@ -69,23 +51,18 @@ func main() {
 	finishButton.Text = "Select option"
 
 	radioEnDe := widget.NewRadioGroup([]string{"Encryption", "Decryption"}, func(s string) {
-		//We write down the choosen option in a file:
-		if err := ioutil.WriteFile("tempEnDe.txt", []byte(s), 0644); err != nil {
-			panic("Error writting filepath into file")
-		}
+		ChoosenOption = s
 		finishButton.Text = s[:len(s)-3]
 		finishButton.Refresh()
 	})
 
 	labelAlgorithm := widget.NewLabel("Choose preferred algorithm: ")
 	radioAlgorithm := widget.NewRadioGroup([]string{"RSA", "AES"}, func(s string) {
+		endehandler.ChoosenAlgorithm = s
 		if s == "AES" {
 			showAESWindow(a)
 		}
 
-		if err := ioutil.WriteFile("tempAlg.txt", []byte(s), 0644); err != nil {
-			panic("Error writting filepath into file")
-		}
 	})
 
 	helpButton := widget.NewButton("Help!", func() {
@@ -143,11 +120,7 @@ func openFile(window fyne.Window) {
 		if fileURI != nil {
 			filePath := fileURI.Path()
 			dialog.ShowInformation("File Path", filePath, window)
-
-			if err := ioutil.WriteFile("temp.txt", []byte(filePath), 0644); err != nil { //it automatically closes opened file after writting into file
-				fmt.Println("Error writting filepath into file")
-				return
-			}
+			FilePath = filePath
 		}
 	}, window)
 
@@ -164,8 +137,7 @@ func showAESWindow(app fyne.App) {
 		confirmPassword := confirmEntry.Text
 		if password != "" && confirmPassword != "" && password == confirmPassword {
 			fmt.Println("Passwords match!")
-			Passs = getPassword(password)
-			endehandler.Passs = Passs
+			endehandler.Passs = getPassword(password)
 			encryptionWindow.Close()
 		} else {
 			labelNotMatch.SetText("Passwords do not match")

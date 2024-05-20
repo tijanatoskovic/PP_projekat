@@ -16,22 +16,16 @@ var publicKey *rsa.PublicKey
 var encryptedData []byte
 var encryptedAESKey []byte
 var Passs []byte
+var ChoosenAlgorithm string
 
 func EncryptHandle(filePath string) {
 	//Reading from our temporary file which algorithm the user has choosen
-	optAlgorithm, err := ioutil.ReadFile("tempAlg.txt")
-	if err != nil {
-		panic("Error reading file")
-	}
-	if err := os.Remove("tempAlg.txt"); err != nil {
-		panic("Error removing file")
-	}
+	optAlgorithm := ChoosenAlgorithm
 
 	fmt.Println(string(optAlgorithm))
-
+	var err error
 	switch string(optAlgorithm) {
 	case "AES":
-		fmt.Println(Passs)
 		password := Passs
 		fmt.Println("\nEncrypting...")
 		filecrypt.EncryptAES(filePath, password)
@@ -85,24 +79,14 @@ func EncryptHandle(filePath string) {
 
 func DecryptHandle(filePath string) {
 
-	// fmt.Println("Choose which algorithm you had encrypted with [AES | RSA | ECC]: ")
-	// fmt.Scanln(&algorithm)
-	// fmt.Println("Enter path to file you want to encrypt/decrypt: ")
-	// fmt.Scanln(&filePath)
-	//fmt.Println(filePath)
 	if !files.ValidateFile(filePath) {
 		fmt.Println("File not found.")
 		os.Exit(1)
 	}
 
-	optAlgorithm, err := ioutil.ReadFile("tempAlg.txt")
-	if err != nil {
-		panic("Error reading file")
-	}
-	if err := os.Remove("tempAlg.txt"); err != nil {
-		panic("Error removing file")
-	}
-	fmt.Println(filePath, optAlgorithm)
+	optAlgorithm := ChoosenAlgorithm
+
+	//fmt.Println(filePath, optAlgorithm)
 
 	switch string(optAlgorithm) {
 	case "AES":

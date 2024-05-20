@@ -42,12 +42,12 @@ func EncryptAES(source string, password []byte) {
 	//Password-Based Key Derivation Function:
 	dk := pbkdf2.Key(key, nonce, 4096, 32, sha1.New) //derivate key
 
-	block, err := aes.NewCipher(dk)
+	block, err := aes.NewCipher(dk) //initializes an AES cipher with the provided key!!! Crucial step
 	if err != nil {
 		panic(err.Error())
 	}
 
-	aesgcm, err := cipher.NewGCM(block)
+	aesgcm, err := cipher.NewGCM(block) //create new gcm password using aes block
 	if err != nil {
 		panic(err.Error())
 	}
